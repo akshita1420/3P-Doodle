@@ -10,7 +10,7 @@ import './LandingPage.css';
 export function LandingPage() {
 
     const handleStart = () => {
-        window.location.href = 'https://google.com';
+        window.location.href = 'https://findtheinvisiblecow.com/';
     };
 
     return (

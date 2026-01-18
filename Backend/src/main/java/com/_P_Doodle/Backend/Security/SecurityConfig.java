@@ -24,7 +24,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-        //enabling  as domains are different for frontend and backend
+        //enabling cors as domains are different for frontend and backend
             .csrf(csrf -> csrf.disable())
             .cors(cors -> {})
             .sessionManagement(

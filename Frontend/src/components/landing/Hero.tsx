@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
+import { Start } from './Start';
 
 interface HeroProps {
-    onStart: () => void;
+    onStart?: () => void;
 }
 
 /**
- * Hero section with main title and Start CTA button.
+ * Hero section with main title and Start CTA component.
  */
 export function Hero({ onStart }: HeroProps) {
     return (
@@ -24,16 +25,8 @@ export function Hero({ onStart }: HeroProps) {
                 </h1>
             </motion.div>
 
-            {/* Start Button */}
-            <motion.button
-                onClick={onStart}
-                className="landing-button"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, delay: 1.0 }}
-            >
-                Start
-            </motion.button>
+            {/* Start Button Component */}
+            <Start onStart={onStart} />
         </div>
     );
 }

@@ -1,47 +1,34 @@
 package com._P_Doodle.Backend.Security;
 
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
-import org.springframework.security.oauth2.jwt.JwtException;
+import java.util.Map;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 
-import java.util.Date;
-
-import java.util.function.Function;
-
-import javax.crypto.SecretKey;
 
 @Component
 public class JwtUtil {
 
-    public <T> T ExtractClaims(@AutheJwt token){
-        return token.getClaims();
+   private Jwt jwt(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if(authentication!=null && !(authentication.getCredentials() instanceof Jwt)){
+            throw new IllegalArgumentException("Invalid JWT Token OR CHECK IF TOKEN IS PRESENT");
+        }
+        return (Jwt) authentication.getCredentials();
     }
 
-    //Single claim extraction
-    private <T> T ExtractClaim(String token , Function<Claims,T> claimsResolver) {
-        final Claims claims = ExtractallClaims(token);
-        return claimsResolver.apply(claims);
+    public Map<String,Object> GetClaims(){
+        return jwt().getClaims();
+    }
+    public String GetUserId(){
+        return jwt().getSubject();
     }
 
-    //Extracts username from the token
-    public String ExtractUsername(String token){
-        return ExtractClaim(token,Claims::getSubject);
+    public String GetEmail(){
+        return jwt().getClaimAsString("email");
     }
-
-     
-
-
-
-    //Extracting expiration date from token
-    //Need to switch to Instant for better time handling and readablility 
-    private Date extractExpiration(String token) {
-        return ExtractClaim(token,Claims::getExpiration);
-    }
-
-   
+    
 }

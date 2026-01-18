@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { HeaderBrand } from './landing/HeaderBrand';
 import { CatDecorations } from './landing/CatDecorations';
-import { useAuth } from '../context/AuthContext';
 import '../pages/LandingPage.css';
 
 interface LayoutProps {

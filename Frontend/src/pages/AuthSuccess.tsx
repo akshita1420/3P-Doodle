@@ -33,8 +33,10 @@ export function AuthSuccess() {
         <div className="home-page-container">
             {/* Background layers */}
             <img src="/assets/Home/Left.png" alt="" className="patchwork-left" />
-            <img src="/assets/Home/right-top.png" alt="" className="patchwork-right-top" />
-            <img src="/assets/Home/right-bottom.png" alt="" className="patchwork-right-bottom" />
+            <div className="patchwork-right">
+                <img src="/assets/Home/right-top.png" alt="" className="patchwork-right-top" />
+                <img src="/assets/Home/right-bottom.png" alt="" className="patchwork-right-bottom" />
+            </div>
 
             {/* Central Panel */}
             <motion.div

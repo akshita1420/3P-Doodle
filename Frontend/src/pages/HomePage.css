@@ -35,31 +35,30 @@
     user-select: none;
 }
 
-.patchwork-right-column {
+.patchwork-right {
     position: absolute;
     right: 0;
     top: 0;
     height: 100%;
-    width: clamp(200px, 18vw, 320px);
+    width: clamp(230px, 20vw, 450px);
     display: flex;
     flex-direction: column;
     z-index: 5;
     pointer-events: none;
+    user-select: none;
     overflow: hidden;
 }
 
 .patchwork-right-top {
-    height: 40%;
+    height: 42%;
     width: 100%;
     object-fit: cover;
-    user-select: none;
 }
 
 .patchwork-right-bottom {
-    height: 60%;
+    height: 58%;
     width: 100%;
     object-fit: cover;
-    user-select: none;
 }
 
 /* ========== CENTRAL PANEL ========== */
@@ -160,7 +159,7 @@
         height: 30vh;
     }
 
-    .patchwork-right-column {
+    .patchwork-right {
         display: none;
         /* Hide side patches on mobile to focus on the panel */
     }

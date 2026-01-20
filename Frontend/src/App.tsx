@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from './pages/LandingPage';
 import { AuthSuccess } from './pages/AuthSuccess';
+import { OptionScreen } from './pages/OptionScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -21,6 +22,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AuthSuccess />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/options"
+            element={
+              <ProtectedRoute>
+                <OptionScreen />
               </ProtectedRoute>
             }
           />

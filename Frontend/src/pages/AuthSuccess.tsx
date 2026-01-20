@@ -1,31 +1,161 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './HomePage.css';
 
+interface RoomStatus {
+    status: 'NO_ROOM' | 'WAITING' | 'PAIRED';
+    code?: string;
+    partner?: string;
+}
+
 export function AuthSuccess() {
     const { session, logout } = useAuth();
-    const [apiResponse, setApiResponse] = useState<string>('Connecting...');
+    const navigate = useNavigate();
+    const [roomStatus, setRoomStatus] = useState<RoomStatus | null>(null);
+    const [friendCode, setFriendCode] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [showPairedPopup, setShowPairedPopup] = useState(false);
+    const [hasShownPopup, setHasShownPopup] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
         if (session) {
-            fetchBackendData(session.access_token);
+            checkRoomStatus();
+            // Poll every 3 seconds for updates
+            const interval = setInterval(checkRoomStatus, 3000);
+            return () => clearInterval(interval);
         }
     }, [session]);
 
-    const fetchBackendData = async (token: string) => {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    useEffect(() => {
+        if (roomStatus?.status === 'PAIRED' && !hasShownPopup) {
+            setShowPairedPopup(true);
+            setHasShownPopup(true);
+        }
+    }, [roomStatus, hasShownPopup]);
+
+    // Auto-redirect if already paired
+    useEffect(() => {
+        if (roomStatus?.status === 'PAIRED' && !showPairedPopup) {
+            // User is already paired, skip to options screen
+            navigate('/options');
+        }
+    }, [roomStatus, showPairedPopup, navigate]);
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+    const checkRoomStatus = async () => {
+        if (!session) return;
+        
         try {
-            const res = await fetch(`${apiUrl}/Home/`, {
+            const res = await fetch(`${apiUrl}/room/status`, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${session.access_token}`,
                 },
             });
 
-            const text = await res.text();
-            setApiResponse(res.ok ? text : `Error: ${res.status}`);
+            if (res.ok) {
+                const data = await res.json();
+                console.log('Room status:', data); // Debug log
+                setRoomStatus(data);
+            } else {
+                console.error('Status check failed:', res.status, await res.text());
+            }
         } catch (err) {
-            setApiResponse(err instanceof Error ? err.message : String(err));
+            console.error('Failed to check room status', err);
+        } finally {
+            setInitialLoading(false);
+        }
+    };
+
+    const createRoom = async () => {
+        setLoading(true);
+        setError('');
+        
+        try {
+            const res = await fetch(`${apiUrl}/room/create`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${session!.access_token}`,
+                },
+            });
+
+            const data = await res.json();
+            
+            if (res.ok) {
+                setRoomStatus(data);
+            } else {
+                console.error('Create room error:', res.status, data);
+                setError(data.error || 'Failed to create room');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const joinRoom = async () => {
+        if (!friendCode.trim()) {
+            setError('Please enter a room code');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        
+        try {
+            const res = await fetch(`${apiUrl}/room/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session!.access_token}`,
+                },
+                body: JSON.stringify({ code: friendCode.toUpperCase() }),
+            });
+
+            const data = await res.json();
+            console.log('Join response:', data); // Debug log
+            
+            if (res.ok) {
+                setRoomStatus(data);
+                setShowPairedPopup(true);
+            } else {
+                console.error('Join error:', data); // Debug log
+                setError(data.error || data.message || 'Failed to join room');
+            }
+        } catch (err) {
+            console.error('Join exception:', err); // Debug log
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const leaveRoom = async () => {
+        try {
+            const res = await fetch(`${apiUrl}/room/leave`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${session!.access_token}`,
+                },
+            });
+
+            if (res.ok) {
+                // Reset to NO_ROOM state
+                setRoomStatus({ status: 'NO_ROOM' });
+                setFriendCode('');
+                setError('');
+            } else {
+                console.error('Leave room error:', res.status);
+                setError('Failed to leave room');
+            }
+        } catch (err) {
+            console.error('Leave room exception:', err);
+            setError(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -45,16 +175,102 @@ export function AuthSuccess() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, ease: "easeOut" }}
             >
-                <div className="central-panel-text">
-                    <div className="line-1">Playground space</div>
-                    <div className="line-2">Make your own stencil</div>
-                </div>
+                {initialLoading ? (
+                    <div className="loading-initial">
+                        <p>Loading...</p>
+                    </div>
+                ) : (
+                    <>
+                        {roomStatus?.status === 'NO_ROOM' && (
+                    <div className="room-setup">
+                        <h2>Welcome to Doodle!</h2>
+                        <div className="room-actions">
+                            <button 
+                                onClick={createRoom} 
+                                disabled={loading}
+                                className="create-room-btn"
+                            >
+                                {loading ? 'Creating...' : 'Get My Code'}
+                            </button>
+                            
+                            <div className="divider">OR</div>
+                            
+                            <div className="join-room-section">
+                                <input
+                                    type="text"
+                                    placeholder="Enter friend's code"
+                                    value={friendCode}
+                                    onChange={(e) => setFriendCode(e.target.value.toUpperCase())}
+                                    className="room-code-input"
+                                    maxLength={6}
+                                />
+                                <button 
+                                    onClick={joinRoom} 
+                                    disabled={loading || !friendCode.trim()}
+                                    className="join-room-btn"
+                                >
+                                    {loading ? 'Joining...' : 'Join Room'}
+                                </button>
+                            </div>
+                        </div>
+                        {error && <p className="error-message">{error}</p>}
+                    </div>
+                )}
 
-                {/* Subtle Backend Status indicator */}
-                <div className="backend-status-hint">
-                    {apiResponse}
-                </div>
+                {roomStatus?.status === 'WAITING' && (
+                    <div className="waiting-room">
+                        <h2>Your Room Code</h2>
+                        <div className="room-code-display">{roomStatus.code}</div>
+                        <p className="waiting-text">Waiting for friend to join...</p>
+                        <div className="loading-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <button 
+                            onClick={leaveRoom}
+                            className="cancel-room-btn"
+                        >
+                            Start Over
+                        </button>
+                    </div>
+                )}
+
+                {/* Removed the PAIRED state UI since we auto-redirect to /options */}
+                    </>
+                )}
             </motion.div>
+
+            {/* Pairing Success Popup */}
+            <AnimatePresence>
+                {showPairedPopup && roomStatus?.status === 'PAIRED' && (
+                    <motion.div
+                        className="pairing-popup-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowPairedPopup(false)}
+                    >
+                        <motion.div
+                            className="pairing-popup"
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.5, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="popup-icon">🎨</div>
+                            <h2>You're Doodlemates!</h2>
+                            <p className="popup-message">
+                                You and <strong>{roomStatus.partner}</strong> are now connected
+                            </p>
+                            <button 
+                                className="popup-close-btn"
+                                onClick={() => setShowPairedPopup(false)}
+                            >
+                                Let's Doodle!
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Bear Character */}
             <motion.img
